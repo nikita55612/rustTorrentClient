@@ -1,158 +1,175 @@
-use std::net::Ipv4Addr;
-use std::time::Duration;
-use std::net::SocketAddrV4;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-use reqwest::Client;
-
-mod handshake;
 mod message;
-mod tracker;
+mod torrent;
 mod error;
+mod peer;
+mod bencode;
+mod piece;
+//mod download_manager;
 
-use crate::handshake::*;
-use crate::message::*;
-use crate::tracker::*;
+use message::Message;
+use tokio::io::AsyncWriteExt;
+
+use crate::torrent::*;
+use crate::peer::*;
 use crate::error::Error;
 
-async fn read_file(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let mut file = tokio::fs::File::open(path).await?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).await?;
-    Ok(buffer)
+
+#[derive(Debug, Clone)]
+pub struct Bitfield {
+    data: Vec<u8>
 }
 
-fn byte_encode(bytes: &[u8]) -> String {
-    bytes.iter()
-        .map(|&byte| format!("%{:02X}", byte))
-        .collect()
-}
+impl Bitfield {
+    pub fn new(data: Vec<u8>) -> Self {
+        Bitfield { data }
+    }
 
-async fn send_tracker_request(announce: &str, info_hash: &[u8], peer_id: &str, port: u16, length: u64) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let client = Client::new();
-    let url = format!(
-        "{}?info_hash={}&peer_id={}&port={}&uploaded=0&downloaded=0&left={}&compact=1&event=started",
-        announce,
-        byte_encode(info_hash),
-        urlencoding::encode(peer_id),
-        port,
-        length
-    );
-    let response = client.get(&url)
-        .header("User-Agent", "uTorrent/2210(25110)")
-        .send()
-        .await?;
-    Ok(response.bytes().await?.to_vec())
-}
+    pub fn has_piece(&self, index: usize) -> bool {
+        let byte_index = index / 8;
+        let offset = index % 8;
+        
+        if byte_index >= self.data.len() {
+            return false;
+        }
+        (self.data[byte_index] >> (7 - offset)) & 1 != 0
+    }
 
-// Структура для общения с пиром
-#[derive(Debug)]
-struct PeerConnection {
-    stream: TcpStream,
-    addr: SocketAddrV4
-}
-
-impl PeerConnection {
-    async fn new(peer_addr: SocketAddrV4, handshake: &Handshake) -> Result<Self, Error> {
-        let mut stream = Self::create_stream(&peer_addr).await
-            .map_err(|e| Error::PeerConnectionError(e.to_string()))?;
-        stream.set_nodelay(true)?;
-        let return_handshake = Self::try_handshake(&mut stream, handshake).await?;
-        if return_handshake == *handshake {
-            Ok(Self { stream, addr: peer_addr })
-        } else {
-            Err(Error::PeerConnectionError("Info hash does not match!".to_string()))
+    pub fn set_piece(&mut self, index: usize) {
+        let byte_index = index / 8;
+        let offset = index % 8;
+        if byte_index < self.data.len() {
+            self.data[byte_index] |= 1 << (7 - offset);
         }
     }
 
-    async fn create_stream(peer_addr: &SocketAddrV4) -> std::io::Result<TcpStream> {
-        tokio::time::timeout(
-            Duration::from_secs(5), 
-            TcpStream::connect(peer_addr)
-        ).await?
+    pub fn count_pieces(&self) -> usize {
+        self.data.iter()
+            .map(|byte| byte.count_ones() as usize)
+            .sum()
     }
 
-    async fn try_handshake(stream: &mut TcpStream, handshake: &Handshake) -> Result<Handshake, Error> {
-        tokio::time::timeout(
-            Duration::from_secs(5),
-            perform_handshake(stream, &handshake.buffer)
-        ).await?
+    pub fn len(&self) -> usize {
+        self.data.len() * 8
     }
 
-    async fn read(&mut self) -> Result<Message, Error> {
-        let mut length_buf = [0; 4];
-        self.stream.read_exact(&mut length_buf).await?;
-        let message_length = u32::from_be_bytes(length_buf);
-    
-        if message_length > 0 {
-            let mut response = vec![0; message_length as usize];
-            self.stream.read_exact(&mut response).await?;
-            Ok(Message::from_bytes(&response))
-        } else {
-            Ok(Message::from_bytes(&[0, 4]))
+    pub fn to_bits(&self) -> Vec<bool> {
+        let mut bits = Vec::with_capacity(self.len());
+        for i in 0..self.len() {
+            bits.push(self.has_piece(i));
         }
-    }
-
-    async fn shutdown(&mut self) -> Result<(), std::io::Error> {
-        self.stream.shutdown().await
-    }
-
-    async fn reconnect(mut self, handshake: &Handshake) -> Result<Self, Error> {
-        self.shutdown().await.map_err(|_| Error::PeerShutdownConnectionError)?;
-        Self::new(self.addr, handshake).await
+        bits
     }
 }
 
-#[tokio::main]
-async fn main() {
-    // Читаем торрент файл
-    let file_data: Vec<u8> = read_file("4326599.torrent").await.unwrap();
-    
-    let torrent = Torrent::from_file(&file_data).ok_or("").unwrap();
-    let info_hash = InfoHash::from_file(&file_data).ok_or("").unwrap();
+#[derive(Debug, Clone, Copy)]
+pub struct Block {
+    pub index: usize,
+    pub begin: usize,
+    pub length: usize,
+}
 
-    let peer_id = gen_peer_id();
-    let port: u16 = 6881;
-    
-    let response = send_tracker_request(
-        &torrent.announce,
-        info_hash.as_bytes(),
-        &peer_id,
-        port,
-        torrent.info.length.unwrap_or(0),
-    ).await.unwrap();
+async fn run() {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(&(3 as u32).to_be_bytes());
+    payload.extend_from_slice(&(18604 as u32).to_be_bytes());
+    payload.extend_from_slice(&(1266 as u32).to_be_bytes());
+    println!("{:?}", payload);
 
-    let tracker_response = serde_bencode::de::from_bytes::<TrackerResponse>(&response).unwrap();
+    let mut tc = TorrentClient::from_path("Lana Del Rey.torrent").await.unwrap();
 
-    println!("{:?}", tracker_response);
+    //tc.torrent.info.pieces = serde_bytes::ByteBuf::new();
 
-    let mut socket_addrs = Vec::new();
+    //println!("{:#?}", tc);
+    //panic!();
 
-    let peers = tracker_response.peers.clone();
-
-    for chunk in peers.chunks(6) {
-        let ip = Ipv4Addr::new(chunk[0], chunk[1], chunk[2], chunk[3]);
-        let port = ((chunk[4] as u16) << 8) | (chunk[5] as u16);
-        let socket_addr = SocketAddrV4::new(ip, port);
-        socket_addrs.push(socket_addr);
-    }
-
-    let handshake = Handshake::new(
-        info_hash.as_bytes().try_into().unwrap(), 
-        peer_id.as_bytes().try_into().unwrap()
-    );
-
-    for socket_addr in socket_addrs {
-        match PeerConnection::new(socket_addr, &handshake).await {
-            Ok(mut pc) => {
-                println!("Connected to peer: {}", socket_addr);
-                if let Ok(m) = pc.read().await {
-                    println!("Received message: {:?}", m);
+    let connection_futures: Vec<_> = tc.torrent.peers_addr
+        .iter()
+        .map(|&peer_addr| {
+            let handshake = tc.handshake.clone();
+            async move {
+                if let Ok(conn) = PeerConnection::new(peer_addr, &handshake).await {
+                    println!("Connected to peer: {}", peer_addr);
+                    return Some(conn);
                 }
-                // If successfully handled, shut down the connection
-                let _ = pc.shutdown().await;
+                eprintln!("Failed to connect to peer: {}", peer_addr);
+                None
             }
-            Err(e) => { eprintln!("{}", e); }
+        })
+        .collect();
+
+    let mut peer_connections: Vec<PeerConnection> = futures::future::join_all(connection_futures)
+        .await
+        .into_iter()
+        .filter_map(|v| v)
+        .collect();
+    
+    for peer in peer_connections.iter_mut() {
+        if let Ok(receive_message) = peer.receive().await {
+            let bitfield_data = Bitfield::new(receive_message.payload);
+            //println!("{:?}", bitfield_data.to_bits());
         }
+
+        for i in 0..27 {
+            if let Ok(receive_message) = peer.receive().await {
+                println!("{:?}", receive_message);
+            }
+        }
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&(3 as u32).to_be_bytes());
+        payload.extend_from_slice(&(18604 as u32).to_be_bytes());
+        payload.extend_from_slice(&(1266 as u32).to_be_bytes());
+        let mess = Message::new(
+            message::MessageTag::Request, 
+            payload
+        );
+        println!("{:?}", mess.to_buffer());
+        peer.send(mess).await.unwrap();
+        if let Ok(receive_message) = peer.receive().await {
+            println!("{:?}", receive_message);
+        }
+
+        let mess = Message::new(
+            message::MessageTag::Interested, 
+            Vec::new()
+        );
+        println!("{:?}", mess.to_buffer());
+        peer.send(mess).await.unwrap();
+        if let Ok(receive_message) = peer.receive().await {
+            println!("{:?}", receive_message);
+        }
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&(3 as u32).to_be_bytes());
+        payload.extend_from_slice(&(18604 as u32).to_be_bytes());
+        payload.extend_from_slice(&(1266 as u32).to_be_bytes());
+        let mess = Message::new(
+            message::MessageTag::Request, 
+            payload
+        );
+        peer.send(mess).await.unwrap();
+        if let Ok(receive_message) = peer.receive().await {
+            println!("{:?}", receive_message);
+            let block_data = &receive_message.payload[8..];
+            let mut file = tokio::fs::File::create("Folder.auCDtect.txt").await.unwrap();
+            if block_data.len() != 1266 {
+                println!("Неверный размер блока! {}", block_data.len());
+            }
+            file.write_all(&block_data).await.unwrap();
+            file.flush().await.unwrap();
+        }
+        break;
     }
+
+    for pc in peer_connections.iter_mut() {
+        let _ = pc.shutdown().await;
+    }
+    println!("{:#?}", peer_connections);
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(run());
+    Ok(())
 }

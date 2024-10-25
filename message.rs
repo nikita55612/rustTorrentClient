@@ -2,7 +2,7 @@
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
-pub enum MessageID {
+pub enum MessageTag {
     Choke = 0,
     Unchoke = 1,
     Interested = 2,
@@ -15,7 +15,7 @@ pub enum MessageID {
     Unknown = 255
 }
 
-impl From<u8> for MessageID {
+impl From<u8> for MessageTag {
     fn from(id: u8) -> Self {
         if id <= 8 {
             unsafe { std::mem::transmute(id) }
@@ -27,25 +27,25 @@ impl From<u8> for MessageID {
 
 #[derive(Debug)]
 pub struct Message {
-    pub id: MessageID,
+    pub tag: MessageTag,
     pub payload: Vec<u8>
 }
 
 impl Message {
-    pub fn new(id: MessageID, payload: Vec<u8>) -> Self {
+    pub fn new(tag: MessageTag, payload: Vec<u8>) -> Self {
         Self {
-            id,
+            tag,
             payload
         }
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let id = match bytes.get(0) {
-            Some(id) => MessageID::from(*id),
-            None => MessageID::Unknown
+        let tag = match bytes.get(0) {
+            Some(tag) => MessageTag::from(*tag),
+            None => MessageTag::Unknown
         };
         Self {
-            id,
+            tag,
             payload: bytes[1..].to_vec()
         }
     }
@@ -54,7 +54,7 @@ impl Message {
         let length = (self.payload.len() + 1) as u32;
         let mut buffer = Vec::with_capacity((length + 4) as usize);
         buffer.extend_from_slice(&length.to_be_bytes());
-        buffer.push(self.id as u8);
+        buffer.push(self.tag as u8);
         buffer.extend_from_slice(&self.payload);
         buffer
     }
