@@ -1,7 +1,6 @@
 
-
 #[repr(u8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MessageTag {
     Choke = 0,
     Unchoke = 1,

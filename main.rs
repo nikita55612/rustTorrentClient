@@ -108,35 +108,11 @@ async fn run() {
             let bitfield_data = Bitfield::new(receive_message.payload);
             //println!("{:?}", bitfield_data.to_bits());
         }
-
-        for i in 0..27 {
-            if let Ok(receive_message) = peer.receive().await {
-                println!("{:?}", receive_message);
-            }
-        }
-        let mut payload = Vec::new();
-        payload.extend_from_slice(&(3 as u32).to_be_bytes());
-        payload.extend_from_slice(&(18604 as u32).to_be_bytes());
-        payload.extend_from_slice(&(1266 as u32).to_be_bytes());
-        let mess = Message::new(
-            message::MessageTag::Request, 
-            payload
-        );
-        println!("{:?}", mess.to_buffer());
-        peer.send(mess).await.unwrap();
-        if let Ok(receive_message) = peer.receive().await {
-            println!("{:?}", receive_message);
-        }
-
         let mess = Message::new(
             message::MessageTag::Interested, 
             Vec::new()
         );
-        println!("{:?}", mess.to_buffer());
         peer.send(mess).await.unwrap();
-        if let Ok(receive_message) = peer.receive().await {
-            println!("{:?}", receive_message);
-        }
         let mut payload = Vec::new();
         payload.extend_from_slice(&(3 as u32).to_be_bytes());
         payload.extend_from_slice(&(18604 as u32).to_be_bytes());
@@ -146,17 +122,21 @@ async fn run() {
             payload
         );
         peer.send(mess).await.unwrap();
-        if let Ok(receive_message) = peer.receive().await {
-            println!("{:?}", receive_message);
-            let block_data = &receive_message.payload[8..];
-            let mut file = tokio::fs::File::create("Folder.auCDtect.txt").await.unwrap();
-            if block_data.len() != 1266 {
-                println!("Неверный размер блока! {}", block_data.len());
+        while  true {
+            if let Ok(receive_message) = peer.receive().await {
+                println!("{:?}", receive_message);
+                if receive_message.tag == message::MessageTag::Piece {
+                    let block_data = &receive_message.payload[8..];
+                    let mut file = tokio::fs::File::create("Folder.auCDtect.txt").await.unwrap();
+                    if block_data.len() != 1266 {
+                        println!("Неверный размер блока! {}", block_data.len());
+                    }
+                    file.write_all(&block_data).await.unwrap();
+                    file.flush().await.unwrap();
+                    break;
+                }
             }
-            file.write_all(&block_data).await.unwrap();
-            file.flush().await.unwrap();
         }
-        break;
     }
 
     for pc in peer_connections.iter_mut() {
