@@ -1,0 +1,26 @@
+use reqwest::Error as ReqwestError;
+use serde_bencode::Error as SerDeBencodeError;
+use std::io::Error as StdIoError;
+use std::result::Result as StdResult;
+use thiserror::Error as ThisError;
+use tokio::time::error::Elapsed;
+
+pub type Result<T> = StdResult<T, Error>;
+
+#[derive(ThisError, Debug)]
+pub enum Error {
+    #[error("StdIoError: {0:?}")]
+    StdIo(#[from] StdIoError),
+
+    #[error("SerDeBencodeError: {0:?}")]
+    SerDeBencode(#[from] SerDeBencodeError),
+
+    #[error("TryFromSliceError: {0:?}")]
+    TryFromSlice(#[from] std::array::TryFromSliceError),
+
+    #[error("ReqwestError: {0:?}")]
+    Reqwest(#[from] ReqwestError),
+
+    #[error("ElapsedError: {0:?}")]
+    Elapsed(#[from] Elapsed),
+}
