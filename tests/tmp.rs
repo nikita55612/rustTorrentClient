@@ -1,10 +1,5 @@
 use std::{fs::File, io::Read};
 
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
-};
-
 #[tokio::test]
 async fn test_1() {
     let buff = [1, 2, 3, 4, 5, 4, 5, 6, 8];
@@ -62,37 +57,4 @@ async fn test_1() {
             );
         }
     }
-
-    // let mut stream = TcpStream::connect(&peers[1].socket_addr).await.unwrap();
-
-    // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
-    // stream.write_all(handshake.bytes()).await.unwrap();
-    // let mut buffer = [0; 68];
-    // stream.read_exact(&mut buffer).await.unwrap();
-
-    // println!("{:?}", String::from_utf8_lossy(&buffer));
-
-    // loop {
-    //     stream.readable().await.unwrap();
-
-    //     let mut data = vec![0; 1024];
-    //     match stream.try_read(&mut data) {
-    //         Ok(n) => {
-    //             println!("read {} bytes", n);
-    //             println!("{:?}", String::from_utf8_lossy(&data.as_slice()[..n]));
-    //             return;
-    //         }
-    //         Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-    //             return;
-    //         }
-    //         Err(_) => {
-    //             return;
-    //         }
-    //     }
-    // }
-
-    // println!("{:?}", tor);
-    // println!("{:?}", info_hash.bytes());
-    // println!("{:?}", String::from_utf8(peer_id.bytes().to_vec()));
 }
