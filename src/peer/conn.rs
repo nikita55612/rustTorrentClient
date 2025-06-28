@@ -1,5 +1,5 @@
 use std::net::SocketAddrV4;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Duration};
 
@@ -15,9 +15,15 @@ pub struct PeerConn {
 impl PeerConn {
     pub async fn connect(addr: &SocketAddrV4) -> Result<Self> {
         let stream = timeout(TIMEOUT, TcpStream::connect(addr)).await??;
+        // let (reader, writer) = tokio::io::split(stream);
+
+        // let mut reader = BufReader::new(reader);
+        // let mut writer = BufWriter::new(writer);
 
         Ok(Self { stream })
     }
+
+    async fn background(&mut self) {}
 
     pub async fn handshake(&mut self, h: &Handshake) -> Result<Handshake> {
         self.send(h.bytes()).await?;

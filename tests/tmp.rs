@@ -5,7 +5,7 @@ async fn test_1() {
     let buff = [1, 2, 3, 4, 5, 4, 5, 6, 8];
     println!("{:?}", &buff[4]);
 
-    let mut file = File::open("/Users/Nikita/Downloads/5145412.torrent").unwrap();
+    let mut file = File::open("resources/Books.torrent").unwrap();
 
     let mut buf = Vec::new();
     file.read_to_end(&mut buf).unwrap();
@@ -57,4 +57,40 @@ async fn test_1() {
             );
         }
     }
+}
+
+#[tokio::test]
+async fn test_2() {
+    rutor::disk::create_file("data", 40).await.unwrap();
+    rutor::disk::write_chunk("data", 12, b"Hello, world!")
+        .await
+        .unwrap();
+}
+
+#[test]
+fn test_3() {
+    use std::io::{BufReader, Read};
+
+    let bytes = &b"Hello, world!"[..];
+    let mut r = BufReader::new(bytes);
+    let mut buf = [0; 4];
+    r.read(&mut buf[..]).unwrap();
+
+    println!("{}", str::from_utf8(&buf).unwrap());
+    println!("{}", str::from_utf8(r.buffer()).unwrap());
+}
+
+#[test]
+fn test_4() {
+    let u = 9u32;
+    println!("{:?}", u.to_be_bytes());
+}
+
+#[test]
+fn test_5() {
+    let p = rutor::proto::piece::Piece::new(0, 12, vec![1, 22, 33, 33]);
+    let mb = rutor::proto::message::Message::Piece(p).to_bytes();
+    println!("{:?}", mb);
+    let m = rutor::proto::message::Message::from_bytes(&mb);
+    println!("{:?}", m);
 }

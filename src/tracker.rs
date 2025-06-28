@@ -91,8 +91,8 @@ impl TrackerRequest {
         self
     }
 
-    pub fn not_compact(mut self) -> Self {
-        self.compact = false;
+    pub fn with_set_compact(mut self, compact: bool) -> Self {
+        self.compact = compact;
         self
     }
 

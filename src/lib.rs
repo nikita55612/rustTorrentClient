@@ -1,4 +1,5 @@
 pub mod bencode;
+pub mod disk;
 pub mod error;
 pub mod hash;
 pub mod peer;
