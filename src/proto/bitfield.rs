@@ -4,7 +4,7 @@ use std::ops::Deref;
 pub struct BitField(Vec<u8>);
 
 impl Deref for BitField {
-    type Target = Vec<u8>;
+    type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -38,7 +38,7 @@ impl BitField {
 
         self.0
             .get(byte_index)
-            .map(|byte| (byte >> bit_index) & 1 == 1)
+            .map(|byte| (byte >> bit_index) & 1 != 0)
             .unwrap_or(false)
     }
 
@@ -49,7 +49,6 @@ impl BitField {
         if byte_index >= self.0.len() {
             self.0.resize(byte_index + 1, 0);
         }
-
         self.0[byte_index] |= 1 << bit_index;
     }
 }

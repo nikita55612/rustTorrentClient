@@ -1,18 +1,36 @@
 use std::{fs::File, io::Read};
 
 #[tokio::test]
-async fn test_1() {
-    let buff = [1, 2, 3, 4, 5, 4, 5, 6, 8];
-    println!("{:?}", &buff[4]);
+async fn test_tor_meta() {
+    let mut file = File::open("resources/Red_Hot_Chili_Peppers.torrent").unwrap();
 
-    let mut file = File::open("resources/Books.torrent").unwrap();
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf).unwrap();
+
+    let tor = rutor::bencode::Torrent::from_bytes(&buf).unwrap();
+    let info_hash = rutor::bencode::InfoHash::from_bytes(&buf).unwrap();
+
+    println!("torrent meta info:\n");
+    println!("announce: {}", tor.announce.as_str());
+    println!("info_hash: {}", info_hash.hex());
+    println!("info.name: {}", tor.info.name.as_str());
+    println!("info.piece_length: {}", tor.info.piece_length);
+    println!("info.pieces.len: {}", tor.info.pieces.len());
+    println!("info.pieces.len2: {}", tor.info.pieces.len() / 20);
+    println!("info.length: {}", tor.info.length());
+    // println!("info.files: {:#?}", tor.info.files.as_ref());
+}
+
+#[tokio::test]
+async fn test_1() {
+    let mut file = File::open("resources/Red_Hot_Chili_Peppers.torrent").unwrap();
 
     let mut buf = Vec::new();
     file.read_to_end(&mut buf).unwrap();
 
     let tor = rutor::bencode::Torrent::from_bytes(&buf).unwrap();
 
-    println!("torrent:");
+    println!("torrent:\n");
     println!("announce: {}", tor.announce.as_str());
     println!("info.name: {}", tor.info.name.as_str());
     println!("info.piece_length: {}", tor.info.piece_length);
@@ -44,18 +62,40 @@ async fn test_1() {
     println!("{:#?}", peers);
     println!();
 
+    let mut jh_group = Vec::with_capacity(peers.len());
+
     for (i, p) in peers.iter().enumerate() {
-        if let Ok(mut conn) = rutor::peer::conn::PeerConn::connect(&p.socket_addr).await {
-            let h = conn.handshake(&handshake).await;
-            if h.is_err() {
-                continue;
+        let hc = handshake.clone();
+        let addr = p.addr.clone();
+
+        let jh = tokio::spawn(async move {
+            match rutor::peer::conn::Conn::connect(&addr).await {
+                Ok((conn, mut receiver)) => {
+                    // println!("task {}", i);
+                    if let Err(e) = conn.send(hc.bytes()).await {
+                        eprintln!("{}: send failed: {:?}", i, e);
+                    }
+                    while let Some(m) = receiver.recv().await {
+                        println!(
+                            "{}. peer message: {:?}",
+                            i,
+                            m,
+                            // String::from_utf8_lossy(m.to_bytes().as_slice()),
+                        );
+                    }
+                    conn.close().await;
+                }
+                Err(e) => {
+                    eprintln!("{}: connection failed: {:?}", i, e);
+                }
             }
-            println!(
-                "{}. peer handshake: {}",
-                i,
-                String::from_utf8_lossy(h.unwrap().bytes())
-            );
-        }
+        });
+
+        jh_group.push(jh);
+    }
+
+    for jh in jh_group {
+        let _ = jh.await;
     }
 }
 

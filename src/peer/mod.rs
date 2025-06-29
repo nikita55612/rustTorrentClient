@@ -5,10 +5,14 @@ use std::{
     net::{Ipv4Addr, SocketAddrV4},
     ops::Deref,
 };
-use tokio::net::TcpStream;
+use tokio::sync::mpsc::Receiver;
 
-use crate::error::Result;
-use crate::hash::Hash;
+use crate::{
+    error::Result,
+    peer::conn::Conn,
+    proto::{handshake::Handshake, message::Message},
+};
+use crate::{hash::Hash, proto::bitfield::BitField};
 
 const PEER_ID_PREFIX: &'static str = "-UT2210-";
 
@@ -50,32 +54,75 @@ impl PeerId {
     }
 }
 
-#[derive(Debug, Clone, Eq)]
+// 🔄 Полная последовательность
+// TCP connect
+
+// Отправка handshake
+
+// Получение handshake
+
+// Получение bitfield
+
+// Отправка interested
+
+// Получение unchoke
+
+// Отправка request
+
+// Получение piece
+
+#[derive(Debug)]
 pub struct Peer {
-    pub socket_addr: SocketAddrV4,
-    pub id: Option<PeerId>,
+    pub addr: SocketAddrV4,
+    pub conn: Option<Conn>,
+    pub conn_attempts: usize,
+    pub receiver: Option<Receiver<Message>>,
+    pub handshake: Option<Handshake>,
+    pub bitfield: Option<BitField>,
+    pub unchoke: bool,
 }
 
 impl PartialEq for Peer {
     fn eq(&self, other: &Self) -> bool {
-        self.socket_addr == other.socket_addr
+        self.addr == other.addr
     }
 }
 
-impl Peer {
-    pub fn from_bytes(bytes: &[u8; 6]) -> Self {
-        let ip = Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]);
-        let port = ((bytes[4] as u16) << 8) | (bytes[5] as u16);
-        let socket_addr = SocketAddrV4::new(ip, port);
+impl Eq for Peer {}
 
-        Peer {
-            socket_addr: socket_addr,
-            id: None,
+impl Peer {
+    pub fn new(addr: SocketAddrV4) -> Self {
+        Self {
+            addr: addr,
+            conn: None,
+            conn_attempts: 0,
+            receiver: None,
+            handshake: None,
+            bitfield: None,
+            unchoke: false,
         }
     }
 
-    pub async fn connect(&self) -> Result<TcpStream> {
-        Ok(TcpStream::connect(self.socket_addr).await?)
+    pub fn from_bytes(bytes: &[u8; 6]) -> Self {
+        let ip = Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]);
+        let port = ((bytes[4] as u16) << 8) | (bytes[5] as u16);
+        let addr = SocketAddrV4::new(ip, port);
+
+        Self::new(addr)
+    }
+
+    pub async fn try_connect(&mut self) -> Result<()> {
+        match Conn::connect(&self.addr).await {
+            Ok((conn, receiver)) => {
+                self.conn = Some(conn);
+                self.receiver = Some(receiver);
+                Ok(())
+            }
+            Err(e) => {
+                self.conn_attempts += 1;
+                Err(e)
+            }
+        }
     }
 }
 
@@ -91,6 +138,10 @@ impl Deref for Peers {
 }
 
 impl Peers {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let peers = bytes
             .chunks(6)
@@ -100,19 +151,15 @@ impl Peers {
         Peers(peers)
     }
 
-    pub fn update_peers(&self, bytes: &[u8]) -> () {
+    pub fn update_from_bytes(&self, bytes: &[u8]) -> () {
         let peers = Self::from_bytes(bytes);
 
         for peer in peers.iter() {
-            if self.get_peer_from_socket_addr(&peer.socket_addr).is_none() {}
+            if self.get_peer_from_addr(&peer.addr).is_none() {}
         }
     }
 
-    pub fn get_peer_from_id(&self, id: &PeerId) -> Option<&Peer> {
-        self.iter().find(|p| p.id.as_ref() == Some(id))
-    }
-
-    pub fn get_peer_from_socket_addr(&self, addr: &SocketAddrV4) -> Option<&Peer> {
-        self.iter().find(|p| &p.socket_addr == addr)
+    pub fn get_peer_from_addr(&self, addr: &SocketAddrV4) -> Option<&Peer> {
+        self.iter().find(|p| &p.addr == addr)
     }
 }

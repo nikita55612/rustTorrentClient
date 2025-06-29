@@ -50,6 +50,7 @@ impl Message {
         }
 
         let message_id = bytes[4];
+        // todo
         let payload = &bytes[5..end];
 
         match message_id {
@@ -76,27 +77,19 @@ impl Message {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        fn serialize_request(r: &Request, id: u8) -> [u8; REQUEST_LEN] {
-            let mut buf = [0u8; REQUEST_LEN];
-            buf[..5].copy_from_slice(&[0, 0, 0, REQUEST_LEN as u8, id]);
-            buf[5..HAVE_LEN].copy_from_slice(&r.index.to_be_bytes());
-            buf[HAVE_LEN..13].copy_from_slice(&r.begin.to_be_bytes());
-            buf[13..].copy_from_slice(&r.length.to_be_bytes());
-            buf
-        }
-
         match self {
-            Self::KeepAlive => KEEP_ALIVE_MESS.into(),
-            Self::Handshake(h) => h.bytes().into(),
-            Self::Choke => CHOKE_MESS.into(),
-            Self::UnChoke => UNCHOKE_MESS.into(),
-            Self::Interested => INTERESTED_MESS.into(),
-            Self::NotInterested => NOT_INTERESTED_MESS.into(),
+            Self::KeepAlive => KEEP_ALIVE_MESS.to_vec(),
+            Self::Handshake(h) => h.bytes().to_vec(),
+            Self::Choke => CHOKE_MESS.to_vec(),
+            Self::UnChoke => UNCHOKE_MESS.to_vec(),
+            Self::Interested => INTERESTED_MESS.to_vec(),
+            Self::NotInterested => NOT_INTERESTED_MESS.to_vec(),
             Self::Have(i) => {
                 let mut buf = [0u8; HAVE_LEN];
+
                 buf[..5].copy_from_slice(&[0, 0, 0, HAVE_LEN as u8, HAVE_ID]);
                 buf[5..].copy_from_slice(&i.to_be_bytes());
-                buf.into()
+                buf.to_vec()
             }
             Self::BitField(b) => {
                 let len = 1 + b.len();
@@ -104,29 +97,42 @@ impl Message {
 
                 buf.extend_from_slice(&(len as u32).to_be_bytes());
                 buf.push(BITFIELD_ID);
-                buf.extend_from_slice(b.as_slice());
+                buf.extend_from_slice(b);
                 buf
             }
-            Self::Request(r) => serialize_request(r, REQUEST_ID).into(),
-            Self::Cancel(r) => serialize_request(r, CANCEL_ID).into(),
+            Self::Request(r) | Self::Cancel(r) => {
+                let id = if let Self::Request(_) = self {
+                    REQUEST_ID
+                } else {
+                    CANCEL_ID
+                };
+                let mut buf = [0u8; REQUEST_LEN];
+
+                buf[..5].copy_from_slice(&[0, 0, 0, REQUEST_LEN as u8, id]);
+                buf[5..HAVE_LEN].copy_from_slice(&r.index.to_be_bytes());
+                buf[HAVE_LEN..13].copy_from_slice(&r.begin.to_be_bytes());
+                buf[13..].copy_from_slice(&r.length.to_be_bytes());
+                buf.to_vec()
+            }
             Self::Piece(p) => {
-                let len = HAVE_LEN + p.block.len();
+                let len = 9 + p.block.len();
                 let mut buf = Vec::with_capacity(4 + len);
 
                 buf.extend_from_slice(&(len as u32).to_be_bytes());
                 buf.push(PIECE_ID);
                 buf.extend_from_slice(&p.index.to_be_bytes());
                 buf.extend_from_slice(&p.begin.to_be_bytes());
-                buf.extend_from_slice(p.block.as_slice());
+                buf.extend_from_slice(&p.block);
                 buf
             }
             Self::Port(p) => {
                 let mut buf = [0u8; PORT_LEN];
+
                 buf[..5].copy_from_slice(&[0, 0, 0, PORT_LEN as u8, PORT_ID]);
                 buf[5..].copy_from_slice(&p.to_be_bytes());
-                buf.into()
+                buf.to_vec()
             }
-            _ => Vec::with_capacity(0),
+            _ => Vec::new(),
         }
     }
 

@@ -21,6 +21,9 @@ pub enum Error {
     #[error("ReqwestError: {0:?}")]
     Reqwest(#[from] ReqwestError),
 
-    #[error("ElapsedError: {0:?}")]
+    #[error("{0:?}")]
     Elapsed(#[from] Elapsed),
+
+    #[error("{0}")]
+    Custom(String),
 }

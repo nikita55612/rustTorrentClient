@@ -5,12 +5,6 @@ pub struct Piece {
     pub block: Vec<u8>,
 }
 
-impl From<Vec<u8>> for Piece {
-    fn from(bytes: Vec<u8>) -> Self {
-        Self::from(bytes.as_slice())
-    }
-}
-
 impl From<&[u8]> for Piece {
     fn from(bytes: &[u8]) -> Self {
         if bytes.len() < 8 {
@@ -24,12 +18,18 @@ impl From<&[u8]> for Piece {
     }
 }
 
+impl From<Vec<u8>> for Piece {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::from(bytes.as_slice())
+    }
+}
+
 impl Piece {
     pub fn new(index: u32, begin: u32, block: Vec<u8>) -> Self {
         Self {
-            index: index,
-            begin: begin,
-            block: block,
+            index,
+            begin,
+            block,
         }
     }
 }
