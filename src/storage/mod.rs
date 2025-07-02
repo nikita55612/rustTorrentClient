@@ -1,4 +1,6 @@
 use std::io::SeekFrom;
+pub mod piece;
+pub mod pieces;
 
 use tokio::{
     fs::{File, OpenOptions},
@@ -6,6 +8,8 @@ use tokio::{
 };
 
 use crate::error::Result;
+
+pub struct Disk {}
 
 // disk layout
 

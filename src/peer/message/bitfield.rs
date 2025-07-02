@@ -11,15 +11,9 @@ impl Deref for BitField {
     }
 }
 
-impl From<Vec<u8>> for BitField {
-    fn from(vec: Vec<u8>) -> Self {
-        Self(vec)
-    }
-}
-
 impl From<&[u8]> for BitField {
-    fn from(slice: &[u8]) -> Self {
-        Self(slice.to_vec())
+    fn from(bytes: &[u8]) -> Self {
+        Self(bytes.to_vec())
     }
 }
 

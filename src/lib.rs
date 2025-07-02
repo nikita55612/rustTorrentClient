@@ -1,7 +1,8 @@
-pub mod bencode;
-pub mod disk;
+pub mod client;
 pub mod error;
-pub mod hash;
+pub mod metadata;
 pub mod peer;
-pub mod proto;
+pub mod storage;
 pub mod tracker;
+pub mod types;
+pub mod util;

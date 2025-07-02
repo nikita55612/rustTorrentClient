@@ -18,6 +18,9 @@ pub enum Error {
     #[error("TryFromSliceError: {0:?}")]
     TryFromSlice(#[from] std::array::TryFromSliceError),
 
+    #[error("FromHexError: {0:?}")]
+    FromHex(#[from] hex::FromHexError),
+
     #[error("ReqwestError: {0:?}")]
     Reqwest(#[from] ReqwestError),
 
