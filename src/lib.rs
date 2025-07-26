@@ -1,8 +1,9 @@
-pub mod client;
+pub mod constants;
+pub mod disk;
 pub mod error;
-pub mod metadata;
-pub mod peer;
-pub mod storage;
+pub mod peers;
+pub mod proto;
+pub mod session;
+pub mod torrent;
 pub mod tracker;
-pub mod types;
 pub mod util;

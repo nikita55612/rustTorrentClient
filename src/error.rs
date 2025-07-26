@@ -27,6 +27,21 @@ pub enum Error {
     #[error("{0:?}")]
     Elapsed(#[from] Elapsed),
 
+    #[error("AnnounceBuilderError: {0:?}")]
+    AnnounceBuilder(String),
+
+    #[error("TrackerFailureReason: {0:?}")]
+    TrackerFailureReason(String),
+
+    #[error("ParseMagnetLinkError: {0:?}")]
+    ParseMagnetLink(String),
+
+    #[error("InvalidBep15AnnounceResponse: {0:?}")]
+    InvalidBep15AnnounceResponse(String),
+
+    #[error("InvalidBep15ConnectResponse: {0:?}")]
+    InvalidBep15ConnectResponse(String),
+
     #[error("{0}")]
     Custom(String),
 }
