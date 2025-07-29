@@ -1,4 +1,3 @@
-pub mod constants;
 pub mod disk;
 pub mod error;
 pub mod peers;

@@ -1,17 +1,15 @@
 use super::constants::DEFAULT_PEER_FINGERPRINT;
-use crate::util::urlencode;
+use crate::{proto::constants::PEER_ID_SIZE, util::urlencode};
 use rand::Rng;
 use std::ops::{Deref, DerefMut};
-
-const SIZE: usize = 20;
 
 type Fingerprint = [u8; 8];
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct PeerId([u8; SIZE]);
+pub struct PeerId([u8; PEER_ID_SIZE]);
 
 impl Deref for PeerId {
-    type Target = [u8; SIZE];
+    type Target = [u8; PEER_ID_SIZE];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -24,19 +22,17 @@ impl DerefMut for PeerId {
     }
 }
 
-impl From<[u8; SIZE]> for PeerId {
-    fn from(buf: [u8; SIZE]) -> Self {
+impl PeerId {
+    pub fn new(buf: [u8; PEER_ID_SIZE]) -> Self {
         Self(buf)
     }
-}
 
-impl PeerId {
     pub fn gen_new() -> Self {
         Self::gen_with_fingerprint(DEFAULT_PEER_FINGERPRINT)
     }
 
     pub fn gen_with_fingerprint(fingerprint: &Fingerprint) -> Self {
-        let mut buf = [0u8; SIZE];
+        let mut buf = [0u8; PEER_ID_SIZE];
         buf[..8].copy_from_slice(fingerprint);
 
         let rng = rand::rng();

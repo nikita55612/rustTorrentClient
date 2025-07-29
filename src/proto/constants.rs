@@ -2,6 +2,8 @@ pub const DEFAULT_PEER_FINGERPRINT: &[u8; 8] = b"-qB5050-";
 
 pub const MAX_MESSAGE_SIZE: usize = 2 * 1024 * 1024;
 
+pub const PEER_ID_SIZE: usize = 20;
+
 pub const CHOKE_MESS_ID: u8 = 0;
 pub const UNCHOKE_MESS_ID: u8 = 1;
 pub const INTERESTED_MESS_ID: u8 = 2;
@@ -32,13 +34,19 @@ pub const BEP15_MAGIC_CONSTANT: [u8; 8] = [0, 0, 4, 23, 39, 16, 25, 128];
 pub const BEP15_CONNECT_LEN: usize = 16;
 pub const BEP15_ANNOUNCE_REQUEST_LEN: usize = 98;
 
-pub const DNT_CLIENT_VERSION: &[u8; 4] = b"rT01";
+pub const DHT_CLIENT_VERSION: &[u8; 4] = b"rT01";
+pub const DHT_TRANSACTION_ID_SIZE: usize = 2;
+pub const DHT_PING_QUERY_STR: &str = "ping";
+pub const DHT_FIND_NODE_QUERY_STR: &str = "find_node";
+pub const DHT_GET_PEERS_QUERY_STR: &str = "get_peers";
+pub const DHT_ANNOUNCE_PEER_QUERY_STR: &str = "announce_peer";
 
-pub const BOOTSTRAP_NODES: [&str; 6] = [
+pub const BOOTSTRAP_NODES: [&str; 7] = [
     "router.bittorrent.com:6881",
     "router.utorrent.com:6881",
     "dht.transmissionbt.com:6881",
     "dht.aelitis.com:6881",
     "router.bitcomet.com:6881",
     "dht.libtorrent.org:6881",
+    "dht.libtorrent.org:25401",
 ];

@@ -1,4 +1,4 @@
-/// https://bittorrent.org/beps/bep_0009.html#magnet-uri-format
+/// <https://bittorrent.org/beps/bep_0009.html#magnet-uri-format>
 use crate::error::Error;
 use crate::torrent::infohash::{InfoHash, InfoHashV1, InfoHashV2};
 use reqwest::Url;

@@ -24,6 +24,8 @@ pub struct Session {
     torrents: Torrents,
 }
 
+// Однако асинхронный мьютекс обходится дороже обычного, и обычно лучше использовать один из двух других подходов.
+
 impl Session {
     pub async fn new() -> Result<Self> {
         let tcp_listener = TcpListener::bind(("0.0.0.0", DEFAULT_TCP_PORT)).await?;
@@ -65,6 +67,8 @@ impl Session {
             torrents,
         })
     }
+
+    pub async fn run(&self) {}
 
     pub async fn insert_trackers_redirect(&mut self, addr: SocketAddr, sender: Sender<Vec<u8>>) {
         self.udp_trackers_redirect.lock().await.insert(addr, sender);

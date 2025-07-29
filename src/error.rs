@@ -42,6 +42,9 @@ pub enum Error {
     #[error("InvalidBep15ConnectResponse: {0:?}")]
     InvalidBep15ConnectResponse(String),
 
+    #[error("InvalidKrpcDhtTransactionID: type incompatibility")]
+    InvalidKrpcDhtTransactionID,
+
     #[error("{0}")]
     Custom(String),
 }
