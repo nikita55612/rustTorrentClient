@@ -36,11 +36,8 @@ pub enum Error {
     #[error("ParseMagnetLinkError: {0:?}")]
     ParseMagnetLink(String),
 
-    #[error("InvalidBep15AnnounceResponse: {0:?}")]
-    InvalidBep15AnnounceResponse(String),
-
-    #[error("InvalidBep15ConnectResponse: {0:?}")]
-    InvalidBep15ConnectResponse(String),
+    #[error("InvalidBep15Response: {0:?}")]
+    InvalidBep15Response(String),
 
     #[error("InvalidKrpcDhtTransactionID: type incompatibility")]
     InvalidKrpcDhtTransactionID,

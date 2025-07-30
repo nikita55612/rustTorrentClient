@@ -71,7 +71,7 @@ pub struct KrpcMessage {
     e: Option<(i64, String)>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    v: Option<BencodeValue>,
+    v: Option<Vec<u8>>,
 }
 
 impl KrpcMessage {
@@ -93,10 +93,7 @@ impl KrpcMessage {
     }
 
     pub fn version(&self) -> Option<&[u8]> {
-        match &self.v {
-            Some(BencodeValue::Bytes(b)) => Some(b.as_slice()),
-            _ => None,
-        }
+        self.v.as_deref()
     }
 
     pub fn into_args(mut self, q: Option<&str>) -> KrpcArgs {
@@ -112,7 +109,7 @@ impl KrpcMessage {
             y: "q".into(),
             q: Some(q_args.as_str().into()),
             a: Some(q_args.into_dict_args()),
-            v: Some(BencodeValue::Bytes(DHT_CLIENT_VERSION.into())),
+            v: Some(DHT_CLIENT_VERSION.into()),
             ..Default::default()
         }
     }

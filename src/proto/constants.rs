@@ -31,6 +31,7 @@ pub const REQUEST_LEN: usize = 13;
 pub const PORT_LEN: usize = 3;
 
 pub const BEP15_MAGIC_CONSTANT: [u8; 8] = [0, 0, 4, 23, 39, 16, 25, 128];
+pub const BEP15_MIN_MESS_LEN: usize = 8;
 pub const BEP15_CONNECT_LEN: usize = 16;
 pub const BEP15_ANNOUNCE_REQUEST_LEN: usize = 98;
 

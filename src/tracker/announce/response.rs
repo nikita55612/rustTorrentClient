@@ -109,14 +109,14 @@ pub struct Bep15AnnounceResponse {
 impl Bep15AnnounceResponse {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() < 20 {
-            return Result::Err(Error::InvalidBep15AnnounceResponse(
+            return Result::Err(Error::InvalidBep15Response(
                 "Announce response too short".into(),
             ));
         }
 
         let action = u32::from_be_bytes(bytes[0..4].try_into().unwrap());
         if action != 1 {
-            return Result::Err(Error::InvalidBep15AnnounceResponse(
+            return Result::Err(Error::InvalidBep15Response(
                 "Invalid action in announce response".into(),
             ));
         }

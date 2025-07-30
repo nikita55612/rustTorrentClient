@@ -1,11 +1,59 @@
-use std::{collections::BTreeMap, net::SocketAddr};
+use crate::proto::{
+    bep15::{Bep15ConnectionID, Bep15Response, Bep15TransactionID},
+    dht::{DhtTransactionID, KrpcMessage},
+};
+use std::{
+    collections::BTreeMap,
+    net::SocketAddr,
+    ops::{Deref, DerefMut},
+};
+use tokio::sync::mpsc::Sender;
 
-use tokio::sync::{mpsc::Sender, Mutex};
+type DhtRedirectMap = BTreeMap<SocketAddr, BTreeMap<DhtTransactionID, Sender<KrpcMessage>>>;
 
-use crate::proto::dht::DhtTransactionID;
+pub struct DhtRedirect(DhtRedirectMap);
 
-type DhtRedirects = Mutex<BTreeMap<SocketAddr, BTreeMap<DhtTransactionID, Sender<Vec<u8>>>>>;
+impl Deref for DhtRedirect {
+    type Target = DhtRedirectMap;
 
-pub struct DhtRedirect {
-    redirects: DhtRedirects,
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for DhtRedirect {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl DhtRedirect {
+    fn new() -> Self {
+        Self(DhtRedirectMap::new())
+    }
+}
+
+type Bep15RedirectMap =
+    BTreeMap<SocketAddr, BTreeMap<(Bep15ConnectionID, Bep15TransactionID), Sender<Bep15Response>>>;
+
+pub struct Bep15Redirect(Bep15RedirectMap);
+
+impl Deref for Bep15Redirect {
+    type Target = Bep15RedirectMap;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Bep15Redirect {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Bep15Redirect {
+    fn new() -> Self {
+        Self(Bep15RedirectMap::new())
+    }
 }

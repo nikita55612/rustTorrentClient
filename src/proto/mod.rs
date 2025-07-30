@@ -1,6 +1,6 @@
 pub mod announce;
 pub mod bep10;
-pub mod bep15conn;
+pub mod bep15;
 mod bitfield;
 pub mod constants;
 pub mod dht;
