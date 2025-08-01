@@ -4,11 +4,20 @@ use crate::{
     error::{Error, Result},
     proto::constants::BEP15_MIN_MESS_LEN,
 };
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::atomic::{AtomicI32, Ordering},
+};
 
-pub type Bep15TransactionID = u32;
-pub type Bep15ConnectionID = u64;
+pub type Bep15TransactionID = i32;
 
+static GLOBAL_TID_COUNTER: AtomicI32 = AtomicI32::new(42);
+
+pub fn fetch_add_bep15_transaction_id() -> Bep15TransactionID {
+    GLOBAL_TID_COUNTER.fetch_add(1, Ordering::SeqCst)
+}
+
+#[derive(Clone, Debug)]
 pub enum Bep15Response {
     Connect(Bep15ConnectResponse),
     Announce(Bep15AnnounceResponse),
@@ -17,6 +26,16 @@ pub enum Bep15Response {
         transaction_id: Bep15TransactionID,
         message: String,
     },
+}
+
+impl Bep15Response {
+    pub fn transaction_id(&self) -> Bep15TransactionID {
+        match &self {
+            Self::Connect(conn) => conn.transaction_id,
+            Self::Announce(ann) => ann.transaction_id,
+            Self::Error { transaction_id, .. } => *transaction_id,
+        }
+    }
 }
 
 impl Bep15Response {
@@ -30,7 +49,8 @@ impl Bep15Response {
             1 => Self::Announce(Bep15AnnounceResponse::from_bytes(bytes)?),
             // 2 => Scrape,
             3 => {
-                let transaction_id = u32::from_be_bytes(bytes[4..8].try_into().unwrap());
+                let transaction_id =
+                    Bep15TransactionID::from_be_bytes(bytes[4..8].try_into().unwrap());
                 let message = String::from_utf8(bytes[8..].to_vec()).unwrap_or_default();
                 Self::Error {
                     transaction_id,
@@ -47,6 +67,7 @@ impl Bep15Response {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Bep15ConnectRequest {
     pub transaction_id: Bep15TransactionID,
 }
@@ -68,10 +89,10 @@ impl Bep15ConnectRequest {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Bep15ConnectResponse {
     pub transaction_id: Bep15TransactionID,
-    pub connection_id: Bep15ConnectionID,
+    pub connection_id: i64,
 }
 
 impl Bep15ConnectResponse {
@@ -83,8 +104,8 @@ impl Bep15ConnectResponse {
         }
 
         let action = u32::from_be_bytes(bytes[0..4].try_into().unwrap());
-        let transaction_id = u32::from_be_bytes(bytes[4..8].try_into().unwrap());
-        let connection_id = u64::from_be_bytes(bytes[8..BEP15_CONNECT_LEN].try_into().unwrap());
+        let transaction_id = Bep15TransactionID::from_be_bytes(bytes[4..8].try_into().unwrap());
+        let connection_id = i64::from_be_bytes(bytes[8..BEP15_CONNECT_LEN].try_into().unwrap());
 
         if action != 0 {
             return Result::Err(Error::InvalidBep15Response(format!(
@@ -100,9 +121,9 @@ impl Bep15ConnectResponse {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Bep15AnnounceResponse {
-    pub transaction_id: u32,
+    pub transaction_id: Bep15TransactionID,
     pub interval: u32,
     pub leechers: u32,
     pub seeders: u32,
@@ -124,7 +145,7 @@ impl Bep15AnnounceResponse {
             ));
         }
 
-        let transaction_id = u32::from_be_bytes(bytes[4..8].try_into().unwrap());
+        let transaction_id = Bep15TransactionID::from_be_bytes(bytes[4..8].try_into().unwrap());
         let interval = u32::from_be_bytes(bytes[8..12].try_into().unwrap());
         let leechers = u32::from_be_bytes(bytes[12..16].try_into().unwrap());
         let seeders = u32::from_be_bytes(bytes[16..20].try_into().unwrap());

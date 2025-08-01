@@ -1,80 +1,59 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
-use tokio::{
-    net::{TcpListener, UdpSocket},
-    sync::{mpsc::Sender, Mutex},
-    task::JoinHandle,
-};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
-    error::Result,
-    torrent::{infohash::InfoHash, Torrent},
+    error::{Error, Result},
+    session::{
+        background::{spawn_tcp_incoming_listener, spawn_udp_listener},
+        spawn_command_handler,
+        state::SessionState,
+        SessionAlert, SessionCommand,
+    },
 };
 
-const DEFAULT_UDP_PORT: u16 = 6881;
-const DEFAULT_TCP_PORT: u16 = 6881;
-
-type UdpTrackersRedirect = Arc<Mutex<HashMap<SocketAddr, Sender<Vec<u8>>>>>;
-type Torrents = Arc<Mutex<HashMap<InfoHash, Torrent>>>;
-
 pub struct Session {
-    udp_socket: Arc<UdpSocket>,
-    udp_task: JoinHandle<()>,
-    udp_trackers_redirect: UdpTrackersRedirect,
-    torrents: Torrents,
+    command_tx: Sender<SessionCommand>,
+    alert_rx: Receiver<SessionAlert>,
 }
 
-// Однако асинхронный мьютекс обходится дороже обычного, и обычно лучше использовать один из двух других подходов.
-
 impl Session {
-    pub async fn new() -> Result<Self> {
-        let tcp_listener = TcpListener::bind(("0.0.0.0", DEFAULT_TCP_PORT)).await?;
-        let udp_socket = Arc::new(UdpSocket::bind(("0.0.0.0", DEFAULT_UDP_PORT)).await?);
-        let udp_trackers_redirect: UdpTrackersRedirect = Arc::new(Mutex::new(HashMap::new()));
-        let torrents: Torrents = Arc::new(Mutex::new(HashMap::new()));
-
-        //
-        let udp_task = {
-            let udp_socket = udp_socket.clone();
-            let udp_trackers_redirect = udp_trackers_redirect.clone();
-
-            tokio::spawn(async move {
-                let mut buf = [0u8; 2048];
-
-                while let Ok((n, addr)) = udp_socket.recv_from(&mut buf).await {
-                    println!("{:?} bytes received from {:?}", n, addr);
-
-                    if buf.starts_with(b"d1:") {
-                        // DHT bencoded message
-                    } else {
-                        let mut udp_trackers_redirect_guard = udp_trackers_redirect.lock().await;
-                        if let Some(s) = udp_trackers_redirect_guard.get(&addr) {
-                            if s.send(buf[..n].to_vec()).await.is_err() {
-                                udp_trackers_redirect_guard.remove(&addr);
-                            }
-                        }
-                        drop(udp_trackers_redirect_guard)
-                    }
-                }
-                // udp_socket.take_error()
-            })
-        };
-
+    pub async fn start() -> Result<Self> {
+        let (command_tx, alert_rx) = spawn_new_session().await?;
         Ok(Self {
-            udp_socket,
-            udp_task,
-            udp_trackers_redirect,
-            torrents,
+            command_tx,
+            alert_rx,
         })
     }
 
-    pub async fn run(&self) {}
-
-    pub async fn insert_trackers_redirect(&mut self, addr: SocketAddr, sender: Sender<Vec<u8>>) {
-        self.udp_trackers_redirect.lock().await.insert(addr, sender);
+    #[inline]
+    pub async fn send(&self, command: SessionCommand) -> Result<()> {
+        self.command_tx
+            .send(command)
+            .await
+            .map_err(|_| Error::SendSessionCommand)
     }
 
-    pub async fn remove_trackers_redirect(&mut self, addr: &SocketAddr) -> Option<Sender<Vec<u8>>> {
-        self.udp_trackers_redirect.lock().await.remove(addr)
+    #[inline]
+    pub async fn recv(&mut self) -> Option<SessionAlert> {
+        self.alert_rx.recv().await
     }
+}
+
+pub async fn spawn_new_session() -> Result<(Sender<SessionCommand>, Receiver<SessionAlert>)> {
+    let (state, alert_rx) = SessionState::init().await?;
+    let state = Arc::new(state);
+
+    let udp_listener_handle = spawn_udp_listener(state.clone()).await;
+    let tcp_incoming_listener_handle = spawn_tcp_incoming_listener(state.clone()).await;
+
+    let (command_tx, command_jh) = spawn_command_handler(state.clone()).await;
+
+    tokio::spawn(async move {
+        let _ = command_jh.await;
+        udp_listener_handle.abort();
+        tcp_incoming_listener_handle.abort();
+    });
+
+    Ok((command_tx, alert_rx))
 }

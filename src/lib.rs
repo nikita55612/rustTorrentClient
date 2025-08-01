@@ -6,3 +6,4 @@ pub mod session;
 pub mod torrent;
 pub mod tracker;
 pub mod util;
+pub mod utp;

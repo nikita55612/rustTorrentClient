@@ -1,30 +1,17 @@
 /// <https://bittorrent.org/beps/bep_0005.html#krpc-protocol>
 use super::{QueryArgs, ResponseArgs};
 use crate::error::{Error, Result};
-use crate::proto::constants::{DHT_CLIENT_VERSION, DHT_TRANSACTION_ID_SIZE};
+use crate::proto::constants::DHT_CLIENT_VERSION;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::ops::Deref;
+use std::sync::atomic::{AtomicI32, Ordering};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct DhtTransactionID([u8; DHT_TRANSACTION_ID_SIZE]);
+pub type DhtTransactionID = i32;
 
-impl Deref for DhtTransactionID {
-    type Target = [u8; DHT_TRANSACTION_ID_SIZE];
+static GLOBAL_TID_COUNTER: AtomicI32 = AtomicI32::new(42);
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DhtTransactionID {
-    pub fn new(buf: [u8; DHT_TRANSACTION_ID_SIZE]) -> Self {
-        Self(buf)
-    }
-
-    pub fn gen_new() -> Self {
-        Self(rand::random())
-    }
+pub fn fetch_add_dht_transaction_id() -> DhtTransactionID {
+    GLOBAL_TID_COUNTER.fetch_add(1, Ordering::SeqCst)
 }
 
 type BencodeValue = serde_bencode::value::Value;
@@ -84,7 +71,7 @@ impl KrpcMessage {
     }
 
     pub fn transaction_id(&self) -> Result<DhtTransactionID> {
-        Ok(DhtTransactionID::new(
+        Ok(i32::from_be_bytes(
             self.t
                 .as_slice()
                 .try_into()
@@ -105,7 +92,7 @@ impl KrpcMessage {
 
     pub fn from_query_args(transaction_id: &DhtTransactionID, q_args: QueryArgs) -> Self {
         Self {
-            t: transaction_id.to_vec(),
+            t: transaction_id.to_be_bytes().to_vec(),
             y: "q".into(),
             q: Some(q_args.as_str().into()),
             a: Some(q_args.into_dict_args()),

@@ -41,18 +41,18 @@ impl QueryArgs {
             return Self::None;
         };
         match q {
-            "ping" => Self::Ping {
+            DHT_PING_QUERY_STR => Self::Ping {
                 id: get_bytes(&mut map, "id"),
             },
-            "find_node" => Self::FindNode {
+            DHT_FIND_NODE_QUERY_STR => Self::FindNode {
                 id: get_bytes(&mut map, "id"),
                 target: get_bytes(&mut map, "target"),
             },
-            "get_peers" => Self::GetPeers {
+            DHT_GET_PEERS_QUERY_STR => Self::GetPeers {
                 id: get_bytes(&mut map, "id"),
                 info_hash: get_bytes(&mut map, "info_hash"),
             },
-            "announce_peer" => Self::AnnouncePeer {
+            DHT_ANNOUNCE_PEER_QUERY_STR => Self::AnnouncePeer {
                 id: get_bytes(&mut map, "id"),
                 info_hash: get_bytes(&mut map, "info_hash"),
                 port: get_i64(&mut map, "port"),

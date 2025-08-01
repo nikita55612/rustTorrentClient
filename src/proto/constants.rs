@@ -36,7 +36,6 @@ pub const BEP15_CONNECT_LEN: usize = 16;
 pub const BEP15_ANNOUNCE_REQUEST_LEN: usize = 98;
 
 pub const DHT_CLIENT_VERSION: &[u8; 4] = b"rT01";
-pub const DHT_TRANSACTION_ID_SIZE: usize = 2;
 pub const DHT_PING_QUERY_STR: &str = "ping";
 pub const DHT_FIND_NODE_QUERY_STR: &str = "find_node";
 pub const DHT_GET_PEERS_QUERY_STR: &str = "get_peers";

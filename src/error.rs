@@ -42,6 +42,9 @@ pub enum Error {
     #[error("InvalidKrpcDhtTransactionID: type incompatibility")]
     InvalidKrpcDhtTransactionID,
 
+    #[error("SendSessionCommandError")]
+    SendSessionCommand,
+
     #[error("{0}")]
     Custom(String),
 }
