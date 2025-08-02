@@ -1,9 +1,12 @@
 use super::constants::DEFAULT_PEER_FINGERPRINT;
-use crate::{proto::constants::PEER_ID_SIZE, util::urlencode};
+use crate::{
+    proto::constants::{PEER_ID_FINGERPRINT_SIZE, PEER_ID_SIZE},
+    util::urlencode,
+};
 use rand::Rng;
 use std::ops::{Deref, DerefMut};
 
-type Fingerprint = [u8; 8];
+type Fingerprint = [u8; PEER_ID_FINGERPRINT_SIZE];
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PeerId([u8; PEER_ID_SIZE]);
@@ -33,16 +36,16 @@ impl PeerId {
 
     pub fn gen_with_fingerprint(fingerprint: &Fingerprint) -> Self {
         let mut buf = [0u8; PEER_ID_SIZE];
-        buf[..8].copy_from_slice(fingerprint);
+        buf[..PEER_ID_FINGERPRINT_SIZE].copy_from_slice(fingerprint);
 
         let rng = rand::rng();
         let iterator = rng
             .sample_iter(rand::distr::Alphanumeric)
-            .take(12)
+            .take(PEER_ID_SIZE - PEER_ID_FINGERPRINT_SIZE)
             .enumerate();
 
         for (i, byte) in iterator {
-            buf[8 + i] = byte;
+            buf[PEER_ID_FINGERPRINT_SIZE + i] = byte;
         }
 
         Self(buf)
@@ -52,7 +55,12 @@ impl PeerId {
         urlencode(&self.0)
     }
 
-    pub fn extract_header(&self) -> [u8; 8] {
-        self.0[..8].try_into().unwrap()
+    pub fn extract_fingerprint(&self) -> Fingerprint {
+        *self.select_fingerprint()
+    }
+
+    #[inline]
+    pub fn select_fingerprint(&self) -> &Fingerprint {
+        self[..PEER_ID_FINGERPRINT_SIZE].try_into().unwrap()
     }
 }

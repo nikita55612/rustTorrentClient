@@ -2,7 +2,6 @@
 /// https://bittorrent.org/beps/bep_0015.html#announce
 use crate::error::{Error, Result};
 use serde::Deserialize;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 type BencodeValue = serde_bencode::value::Value;
 

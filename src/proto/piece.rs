@@ -25,4 +25,19 @@ impl Piece {
             block: bytes[8..].to_vec(),
         }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = vec![0u8; self.len()];
+
+        buf[0..4].copy_from_slice(&self.index.to_be_bytes());
+        buf[4..8].copy_from_slice(&self.begin.to_be_bytes());
+        buf[8..].copy_from_slice(&self.block);
+
+        buf
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        8 + self.block.len()
+    }
 }

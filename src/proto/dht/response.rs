@@ -1,4 +1,3 @@
-use super::KrpcArgs;
 use std::collections::BTreeMap;
 
 type BencodeValue = serde_bencode::value::Value;

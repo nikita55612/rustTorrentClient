@@ -2,7 +2,7 @@
 use super::constants::{BEP15_CONNECT_LEN, BEP15_MAGIC_CONSTANT};
 use crate::{
     error::{Error, Result},
-    proto::constants::BEP15_MIN_MESS_LEN,
+    proto::constants::BEP15_MIN_MSG_LEN,
 };
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -40,7 +40,7 @@ impl Bep15Response {
 
 impl Bep15Response {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() < BEP15_MIN_MESS_LEN {
+        if bytes.len() < BEP15_MIN_MSG_LEN {
             return Result::Err(Error::InvalidBep15Response("Response too short".into()));
         }
         let action = u32::from_be_bytes(bytes[0..4].try_into().unwrap());
