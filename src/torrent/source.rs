@@ -1,12 +1,12 @@
 use crate::{
     error::{Error, Result},
-    proto::MagnetLink,
-    torrent::{
-        infohash::{
-            InfoHash, InfoHashV1, InfoHashV2, INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE,
-        },
-        MetaInfo, TorrentID,
+    proto::{
+        constants::{INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE},
+        infohash::{InfoHash, InfoHashV1, InfoHashV2},
+        metainfo::MetaInfo,
+        MagnetLink,
     },
+    torrent::TorrentID,
 };
 use reqwest::Url;
 use std::str::FromStr;

@@ -6,7 +6,7 @@ use super::request::Request;
 use crate::proto::bep10;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MSGage {
+pub enum Message {
     Empty,
     Invalid(usize),
     KeepAlive,
@@ -24,7 +24,7 @@ pub enum MSGage {
     Extension(bep10::ExtensionMessage),
 }
 
-impl MSGage {
+impl Message {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let n = bytes.len();
         match n {
@@ -52,10 +52,10 @@ impl MSGage {
             return Self::Invalid(n);
         }
 
-        let MSGage_id = bytes[4];
+        let message_id = bytes[4];
         let payload = &bytes[5..end];
 
-        match MSGage_id {
+        match message_id {
             CHOKE_MSG_ID if len == 1 => Self::Choke,
             UNCHOKE_MSG_ID if len == 1 => Self::UnChoke,
             INTERESTED_MSG_ID if len == 1 => Self::Interested,
@@ -79,7 +79,7 @@ impl MSGage {
             EXTENSION_MSG_ID if len > 6 => {
                 Self::Extension(bep10::ExtensionMessage::from_bytes(&bytes[..end]))
             }
-            _ => MSGage::Invalid(n),
+            _ => Message::Invalid(n),
         }
     }
 
@@ -118,7 +118,7 @@ impl MSGage {
                 let len = b.len();
                 buf[..4].copy_from_slice(&(1 + len as u32).to_be_bytes());
                 buf[4] = BITFIELD_MSG_ID;
-                buf[5..5 + len].copy_from_slice(&b);
+                buf[5..5 + len].copy_from_slice(b.as_slice());
                 5 + len
             }
             Self::Request(r) | Self::Cancel(r) => {
@@ -158,55 +158,9 @@ impl MSGage {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            Self::KeepAlive => KEEP_ALIVE_MSG.to_vec(),
-            Self::Handshake(h) => h.to_vec(),
-            Self::Choke => CHOKE_MSG.to_vec(),
-            Self::UnChoke => UNCHOKE_MSG.to_vec(),
-            Self::Interested => INTERESTED_MSG.to_vec(),
-            Self::NotInterested => NOT_INTERESTED_MSG.to_vec(),
-            Self::Have(i) => {
-                let mut buf = vec![0u8; 4 + 1 + HAVE_PAYLOAD_LEN];
-                buf[..5].copy_from_slice(&HAVE_MSG_HEADER);
-                buf[5..].copy_from_slice(&i.to_be_bytes());
-                buf
-            }
-            Self::BitField(b) => {
-                let len = b.len();
-                let mut buf = vec![0u8; 4 + 1 + len];
-                buf[..4].copy_from_slice(&(1 + len as u32).to_be_bytes());
-                buf[4] = BITFIELD_MSG_ID;
-                buf[5..].copy_from_slice(&b);
-                buf
-            }
-            Self::Request(r) | Self::Cancel(r) => {
-                let id = if let Self::Request(_) = self {
-                    REQUEST_MSG_ID
-                } else {
-                    CANCEL_MSG_ID
-                };
-                let mut buf = vec![0u8; 4 + 1 + REQUEST_PAYLOAD_LEN];
-                buf[..4].copy_from_slice(&REQUEST_MSG_HEADER[..4]);
-                buf[4] = id;
-                buf[5..].copy_from_slice(&r.to_bytes());
-                buf
-            }
-            Self::Piece(p) => {
-                let len = p.len();
-                let mut buf = vec![0u8; 4 + 1 + len];
-                buf[..4].copy_from_slice(&(1 + len as u32).to_be_bytes());
-                buf[4] = PIECE_MSG_ID;
-                buf[5..].copy_from_slice(&p.to_bytes());
-                buf
-            }
-            Self::Port(p) => {
-                let mut buf = vec![0u8; 4 + 1 + PORT_PAYLOAD_LEN];
-                buf[..5].copy_from_slice(&PORT_MSG_HEADER);
-                buf[5..].copy_from_slice(&p.to_be_bytes());
-                buf
-            }
-            _ => Vec::new(),
-        }
+        let mut buf = vec![0u8; self.len()];
+        self.write_bytes(&mut buf);
+        buf
     }
 
     pub fn len(&self) -> usize {

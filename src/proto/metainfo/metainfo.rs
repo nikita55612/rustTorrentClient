@@ -1,7 +1,7 @@
 /// https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
 use super::info::Info;
 use crate::error::Result;
-use crate::torrent::infohash::{InfoHash, InfoHashV1, InfoHashV2};
+use crate::proto::infohash::{InfoHash, InfoHashV1, InfoHashV2};
 use serde::Deserialize;
 use std::net::{IpAddr, SocketAddr};
 

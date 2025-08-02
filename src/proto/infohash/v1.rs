@@ -1,11 +1,9 @@
 use super::InfoHashT;
 use crate::error::{Error, Result};
+use crate::proto::constants::{INFO_HASH_V1_HEX_SIZE, INFO_HASH_V1_SIZE};
 use crate::util::urlencode;
 use sha1::{Digest, Sha1};
 use std::ops::{Deref, DerefMut};
-
-pub const INFO_HASH_V1_SIZE: usize = 20;
-pub const INFO_HASH_V1_HEX_SIZE: usize = 40;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct InfoHashV1([u8; INFO_HASH_V1_SIZE]);

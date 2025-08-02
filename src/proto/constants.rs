@@ -1,5 +1,10 @@
 pub const DEFAULT_PEER_FINGERPRINT: &[u8; 8] = b"-qB5050-";
 
+pub const INFO_HASH_V1_SIZE: usize = 20;
+pub const INFO_HASH_V1_HEX_SIZE: usize = 40;
+pub const INFO_HASH_V2_SIZE: usize = 32;
+pub const INFO_HASH_V2_HEX_SIZE: usize = 64;
+
 pub const MAX_MSGAGE_SIZE: usize = 2 * 1024 * 1024;
 
 pub const PEER_ID_SIZE: usize = 20;

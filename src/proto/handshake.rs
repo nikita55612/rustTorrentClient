@@ -1,7 +1,7 @@
 use super::constants::{HANDSHAKE_PSTR, HANDSHAKE_SIZE};
 use super::PeerId;
-use crate::proto::constants::PEER_ID_SIZE;
-use crate::torrent::infohash::{InfoHash, InfoHashV1, INFO_HASH_V1_SIZE};
+use crate::proto::constants::{INFO_HASH_V1_SIZE, PEER_ID_SIZE};
+use crate::proto::infohash::{InfoHash, InfoHashV1};
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

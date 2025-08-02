@@ -16,6 +16,6 @@ fn test_peerid() {
     println!("peer_id: {:?}", String::from_utf8_lossy(peer_id.as_slice()));
     println!(
         "header: {:?}",
-        String::from_utf8_lossy(peer_id.extract_header().as_slice())
+        String::from_utf8_lossy(peer_id.extract_fingerprint().as_slice())
     );
 }

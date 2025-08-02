@@ -1,12 +1,11 @@
 use super::InfoHashT;
-use crate::error::{Error, Result};
-use crate::torrent::infohash::INFO_HASH_V1_SIZE;
 use crate::util::urlencode;
+use crate::{
+    error::Result,
+    proto::constants::{INFO_HASH_V1_SIZE, INFO_HASH_V2_HEX_SIZE, INFO_HASH_V2_SIZE},
+};
 use sha2::{Digest, Sha256};
 use std::ops::{Deref, DerefMut};
-
-pub const INFO_HASH_V2_SIZE: usize = 32;
-pub const INFO_HASH_V2_HEX_SIZE: usize = 64;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct InfoHashV2([u8; INFO_HASH_V2_SIZE]);

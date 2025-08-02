@@ -1,5 +1,3 @@
-use super::AnnounceList;
-
 // pub async fn available_tracker_from_announce_list(list: &AnnounceList) {
 //     'outer: for tier in list {
 //         for url in tier {

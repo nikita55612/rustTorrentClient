@@ -1,10 +1,7 @@
 /// https://wiki.theory.org/BitTorrentSpecification#Tracker_Request_Parameters
 /// https://bittorrent.org/beps/bep_0015.html#announce
 use super::AnnounceBuilder;
-use crate::{
-    proto::{announce::Event, PeerId},
-    torrent::infohash::InfoHash,
-};
+use crate::proto::{announce::Event, infohash::InfoHash, PeerId};
 
 #[derive(Debug, Clone)]
 pub struct AnnounceRequestParams<'a> {

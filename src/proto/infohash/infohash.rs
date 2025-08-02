@@ -1,5 +1,5 @@
 use super::{InfoHashV1, InfoHashV2};
-use crate::torrent::infohash::INFO_HASH_V1_SIZE;
+use crate::proto::constants::INFO_HASH_V1_SIZE;
 
 pub trait InfoHashT {
     fn hex(&self) -> String;

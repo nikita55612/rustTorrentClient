@@ -1,6 +1,6 @@
 /// https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
-use super::file::FileInfo;
-use crate::{error::Result, torrent::file::FileTree};
+use super::file::{FileInfo, FileTree};
+use crate::error::Result;
 use serde::Deserialize;
 
 type BencodeValue = serde_bencode::value::Value;

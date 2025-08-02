@@ -1,8 +1,7 @@
 use super::AnnounceRequestParams;
 use crate::{
     error::{Error, Result},
-    proto::{announce::Event, PeerId},
-    torrent::infohash::InfoHash,
+    proto::{announce::Event, infohash::InfoHash, PeerId},
 };
 
 #[derive(Debug, Default, Clone)]

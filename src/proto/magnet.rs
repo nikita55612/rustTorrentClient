@@ -1,8 +1,7 @@
 /// <https://bittorrent.org/beps/bep_0009.html#magnet-uri-format>
 use crate::error::Error;
-use crate::torrent::infohash::{
-    InfoHash, InfoHashV1, InfoHashV2, INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE,
-};
+use crate::proto::constants::{INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE};
+use crate::proto::infohash::{InfoHash, InfoHashV1, InfoHashV2};
 use reqwest::Url;
 use std::net::SocketAddr;
 use std::str::FromStr;
