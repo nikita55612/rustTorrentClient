@@ -7,16 +7,19 @@ use rutor::proto;
 use rutor::proto::constants::DHT_GET_PEERS_QUERY_STR;
 use rutor::proto::dht::{fetch_add_dht_transaction_id, DhtTransactionID};
 use rutor::session::RedirectChan;
-use rutor::torrent;
+use rutor::torrent::{self, TorrentSource};
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn test_metainfo() {
-    println!("{:?}", b"d");
-    let magnet = "magnet:?xt=urn:btih:f42f4f3181996ff4954dd5d7f166bc146810f8e3&dn=archlinux-2025.07.01-x86_64.iso";
-    let magnet_link = magnet.parse::<proto::MagnetLink>().unwrap();
-    let peer_id = proto::PeerId::gen_new();
+    let source = TorrentSource::from_str("resources/Red_Hot_Chili_Peppers.torrent")
+        .await
+        .unwrap();
+    println!("{:#?}", source);
+    // let magnet = "magnet:?xt=urn:btih:f42f4f3181996ff4954dd5d7f166bc146810f8e3&dn=archlinux-2025.07.01-x86_64.iso";
+    // let magnet_link = magnet.parse::<proto::MagnetLink>().unwrap();
+    // let peer_id = proto::PeerId::gen_new();
 
     // let session = Session::new().await.unwrap();
 

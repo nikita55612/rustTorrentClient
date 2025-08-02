@@ -5,6 +5,8 @@ use std::result::Result as StdResult;
 use thiserror::Error as ThisError;
 use tokio::time::error::Elapsed;
 
+use crate::session::{SessionAlert, SessionCommand};
+
 pub type Result<T> = StdResult<T, Error>;
 
 #[derive(ThisError, Debug)]
@@ -36,6 +38,9 @@ pub enum Error {
     #[error("ParseMagnetLinkError: {0:?}")]
     ParseMagnetLink(String),
 
+    #[error("ParseTorrentSourceError: {0:?}")]
+    ParseTorrentSource(String),
+
     #[error("InvalidBep15Response: {0:?}")]
     InvalidBep15Response(String),
 
@@ -43,7 +48,10 @@ pub enum Error {
     InvalidKrpcDhtTransactionID,
 
     #[error("SendSessionCommandError")]
-    SendSessionCommand,
+    SendSessionCommand(SessionCommand),
+
+    #[error("SendSessionCommandError")]
+    SendSessionAlert(SessionAlert),
 
     #[error("{0}")]
     Custom(String),

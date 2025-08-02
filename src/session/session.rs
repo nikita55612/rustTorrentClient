@@ -5,10 +5,11 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use crate::{
     error::{Error, Result},
     session::{
-        background::{spawn_tcp_incoming_listener, spawn_udp_listener},
-        spawn_command_handler,
+        background::{
+            spawn_command_handler, spawn_tcp_incoming_listener, spawn_udp_listener, SessionCommand,
+        },
         state::SessionState,
-        SessionAlert, SessionCommand,
+        SessionAlert,
     },
 };
 
@@ -31,7 +32,7 @@ impl Session {
         self.command_tx
             .send(command)
             .await
-            .map_err(|_| Error::SendSessionCommand)
+            .map_err(|err| Error::SendSessionCommand(err.0))
     }
 
     #[inline]

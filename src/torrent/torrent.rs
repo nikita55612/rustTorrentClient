@@ -8,11 +8,19 @@ use crate::{
 use std::{path::Path, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-pub enum TorrentSource<'a> {
-    Bytes(&'a [u8]),
-    File(&'a Path),
-    Magnet(&'a str),
-}
+// #[derive(Debug, Clone)]
+// pub enum TorrentSource<'a> {
+//     File(&'a [u8]),
+//     Link(&'a str),
+// }
+
+// pub struct TorrentState {}
+
+// impl TorrentState {
+//     pub async fn new(source: TorrentSource) -> Self {
+//         Self {}
+//     }
+// }
 
 // pub type TorrentCtx = Ctx<Arc<TorrentState>>;
 
@@ -37,7 +45,8 @@ impl Torrent {
     pub async fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let mut metainfo = MetaInfo::from_bytes(bytes)?;
         let info_hash = metainfo
-            .take_info_hash()
+            .info_hash
+            .take()
             .ok_or(Error::Custom("info hash is none".into()))?;
         let (tx, rx) = mpsc::channel(32);
         Ok(Self {

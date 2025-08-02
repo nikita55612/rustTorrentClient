@@ -19,7 +19,7 @@ pub struct MetaInfo {
 
     // info_bytes -> info_hash
     #[serde(skip)]
-    info_bytes: Option<Vec<u8>>,
+    pub info_hash: Option<InfoHash>,
 
     #[serde(skip)]
     pub info: Info,
@@ -61,7 +61,10 @@ impl MetaInfo {
         if let Some(info_value) = metainfo.info_value.take() {
             let info_bytes = serde_bencode::ser::to_bytes(&info_value)?;
             metainfo.info = Info::from_bytes(&info_bytes)?;
-            metainfo.info_bytes.replace(info_bytes);
+            metainfo.info_hash = Some(match metainfo.info.meta_version() {
+                2 => InfoHash::V2(InfoHashV2::from_bytes(&info_bytes)),
+                _ => InfoHash::V1(InfoHashV1::from_bytes(&info_bytes)),
+            })
         }
         if let Some(nodes_value) = metainfo.nodes_value.take() {
             let nodes = nodes_value
@@ -82,15 +85,6 @@ impl MetaInfo {
         }
 
         Ok(metainfo)
-    }
-
-    pub fn take_info_hash(&mut self) -> Option<InfoHash> {
-        self.info_bytes.take().map(|info_bytes| {
-            if self.info.meta_version() == 2 {
-                return InfoHash::V2(InfoHashV2::from_bytes(&info_bytes));
-            }
-            InfoHash::V1(InfoHashV1::from_bytes(&info_bytes))
-        })
     }
 
     pub fn take_announce_list(&mut self) -> Option<AnnounceList> {

@@ -67,12 +67,11 @@ fn identify_udp_protocol(packet: &[u8]) -> Protocol {
     if packet.len() < 4 {
         return Protocol::Unknown;
     }
-    let prefix = &packet[..4];
-    // b"d" = 100
-    if prefix[0] == 100 {
+    // b"d" = [100]
+    if packet[0] == 100 {
         return Protocol::DHT;
     } else {
-        match i32::from_be_bytes(prefix.try_into().unwrap()) {
+        match i32::from_be_bytes(packet[..4].try_into().unwrap()) {
             0..=3 => Protocol::Tracker,
             _ => Protocol::Unknown,
         }

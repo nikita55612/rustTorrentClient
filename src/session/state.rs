@@ -1,5 +1,5 @@
 use crate::{
-    error::Result,
+    error::{Error, Result},
     session::{Bep15ResponseRouter, DhtResponseRouter, SessionAlert},
 };
 use tokio::{
@@ -18,7 +18,7 @@ pub struct SessionState {
     pub tcp_listener: TcpListener,
     pub dht_router: Mutex<DhtResponseRouter>,
     pub bep15_router: Mutex<Bep15ResponseRouter>,
-    pub alert_tx: Sender<SessionAlert>,
+    alert_tx: Sender<SessionAlert>,
 }
 
 impl SessionState {
@@ -41,5 +41,12 @@ impl SessionState {
             },
             alert_rx,
         ))
+    }
+
+    pub async fn send_alert(&self, alert: SessionAlert) -> Result<()> {
+        self.alert_tx
+            .send(alert)
+            .await
+            .map_err(|err| Error::SendSessionAlert(err.0))
     }
 }

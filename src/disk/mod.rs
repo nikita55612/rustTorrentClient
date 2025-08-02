@@ -19,11 +19,11 @@ use crate::error::Result;
 //     Ok(())
 // }
 
-pub async fn write_chunk(path: &str, offset: u64, data: &[u8]) -> Result<()> {
-    let mut file = OpenOptions::new().write(true).open(path).await?;
+// pub async fn write_chunk(path: &str, offset: u64, data: &[u8]) -> Result<()> {
+//     let mut file = OpenOptions::new().write(true).open(path).await?;
 
-    file.seek(SeekFrom::Start(offset)).await?;
-    file.write_all(data).await?;
+//     file.seek(SeekFrom::Start(offset)).await?;
+//     file.write_all(data).await?;
 
-    Ok(())
-}
+//     Ok(())
+// }

@@ -1,8 +1,10 @@
 /// <https://bittorrent.org/beps/bep_0009.html#magnet-uri-format>
 use crate::error::Error;
-use crate::torrent::infohash::{InfoHash, InfoHashV1, InfoHashV2};
+use crate::torrent::infohash::{
+    InfoHash, InfoHashV1, InfoHashV2, INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE,
+};
 use reqwest::Url;
-use std::net::{AddrParseError, SocketAddr};
+use std::net::SocketAddr;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -17,11 +19,9 @@ impl FromStr for MagnetLink {
     type Err = Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let url = Url::parse(s).map_err(|err| Self::Err::ParseMagnetLink(err.to_string()))?;
+        let url = Url::parse(s).map_err(|e| Error::ParseMagnetLink(format!("Invalid URL: {e}")))?;
         if url.scheme() != "magnet" {
-            return Err(Self::Err::ParseMagnetLink(
-                "URI scheme is not magnet".into(),
-            ));
+            return Err(Error::ParseMagnetLink("URI scheme is not 'magnet'".into()));
         }
 
         let mut info_hash = None;
@@ -32,28 +32,48 @@ impl FromStr for MagnetLink {
         for (key, value) in url.query_pairs() {
             match key.as_ref() {
                 "xt" if value.starts_with("urn:btih:") => {
-                    let data = value.trim_start_matches("urn:btih:");
-                    if data.len() == 32 {
-                        info_hash =
-                            Some(InfoHash::V1(InfoHashV1::from_base32(&data.to_uppercase())?));
-                    } else {
-                        info_hash = Some(InfoHash::V1(InfoHashV1::from_hex(data)?));
-                    }
+                    let hash = &value["urn:btih:".len()..];
+                    info_hash = Some(match hash.len() {
+                        32 => {
+                            let base32 = hash.to_uppercase();
+                            InfoHashV1::from_base32(&base32)
+                                .map(InfoHash::V1)
+                                .map_err(|e| {
+                                    Error::ParseMagnetLink(format!("Invalid base32 btih: {e}"))
+                                })
+                        }
+                        INFO_HASH_V1_HEX_SIZE => {
+                            let bytes: [u8; INFO_HASH_V1_HEX_SIZE] =
+                                hash.as_bytes().try_into().map_err(|_| {
+                                    Error::ParseMagnetLink("btih hex length mismatch".into())
+                                })?;
+                            InfoHashV1::from_hex(&bytes).map(InfoHash::V1).map_err(|e| {
+                                Error::ParseMagnetLink(format!("Invalid hex btih: {e}"))
+                            })
+                        }
+                        _ => Err(Error::ParseMagnetLink(format!("Unknown btih format: {s}"))),
+                    }?);
                 }
                 "xt" if value.starts_with("urn:btmh:") => {
-                    let hex = value.trim_start_matches("urn:btmh:");
-                    info_hash = Some(InfoHash::V2(InfoHashV2::from_hex(hex)?));
+                    let hash = &value["urn:btmh:".len()..];
+                    if hash.len() == INFO_HASH_V2_HEX_SIZE {
+                        let v2 = InfoHashV2::from_hex(hash.as_bytes().try_into().unwrap())
+                            .map_err(|e| Error::ParseMagnetLink(format!("Invalid btmh: {e}")))?;
+                        info_hash = Some(InfoHash::V2(v2));
+                    }
                 }
                 "dn" => {
-                    display_name = Some(value.to_string());
+                    if display_name.is_none() {
+                        display_name = Some(value.to_string());
+                    }
                 }
                 "tr" => {
                     trackers.push(value.to_string());
                 }
                 "x.pe" => {
-                    peers.push(value.parse().map_err(|err: AddrParseError| {
-                        Self::Err::ParseMagnetLink(err.to_string())
-                    })?);
+                    if let Ok(addr) = value.parse() {
+                        peers.push(addr);
+                    }
                 }
                 _ => {}
             }

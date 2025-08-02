@@ -5,7 +5,10 @@ use tokio::{
     task::JoinHandle,
 };
 
-pub enum SessionCommand {}
+#[derive(Debug, Clone)]
+pub enum SessionCommand {
+    // AddTorrent(int),
+}
 
 pub async fn spawn_command_handler(
     state: Arc<SessionState>,
