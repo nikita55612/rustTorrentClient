@@ -1,5 +1,6 @@
 use super::InfoHashT;
 use crate::error::{Error, Result};
+use crate::torrent::infohash::INFO_HASH_V1_SIZE;
 use crate::util::urlencode;
 use sha2::{Digest, Sha256};
 use std::ops::{Deref, DerefMut};
@@ -41,8 +42,8 @@ impl InfoHashT for InfoHashV2 {
         self.as_mut_slice()
     }
 
-    fn truncated_bytes(&self) -> &[u8] {
-        &self.0[..20]
+    fn truncate(&self) -> &[u8; INFO_HASH_V1_SIZE] {
+        self[..INFO_HASH_V1_SIZE].try_into().unwrap()
     }
 
     fn len(&self) -> usize {
@@ -72,7 +73,6 @@ impl InfoHashV2 {
     }
 
     pub fn urlencode(&self) -> String {
-        let truncated_bytes = self.truncated_bytes();
-        urlencode(truncated_bytes)
+        urlencode(self.truncate())
     }
 }

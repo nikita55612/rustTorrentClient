@@ -4,6 +4,5 @@ pub mod peers;
 pub mod proto;
 pub mod session;
 pub mod torrent;
-pub mod tracker;
 pub mod util;
 pub mod utp;

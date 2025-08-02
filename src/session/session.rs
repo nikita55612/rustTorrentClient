@@ -14,22 +14,19 @@ use crate::{
 };
 
 pub struct Session {
-    command_tx: Sender<SessionCommand>,
+    cmd_tx: Sender<SessionCommand>,
     alert_rx: Receiver<SessionAlert>,
 }
 
 impl Session {
     pub async fn start() -> Result<Self> {
-        let (command_tx, alert_rx) = spawn_new_session().await?;
-        Ok(Self {
-            command_tx,
-            alert_rx,
-        })
+        let (cmd_tx, alert_rx) = spawn_new_session().await?;
+        Ok(Self { cmd_tx, alert_rx })
     }
 
     #[inline]
     pub async fn send(&self, command: SessionCommand) -> Result<()> {
-        self.command_tx
+        self.cmd_tx
             .send(command)
             .await
             .map_err(|err| Error::SendSessionCommand(err.0))
@@ -48,7 +45,7 @@ pub async fn spawn_new_session() -> Result<(Sender<SessionCommand>, Receiver<Ses
     let udp_listener_handle = spawn_udp_listener(state.clone()).await;
     let tcp_incoming_listener_handle = spawn_tcp_incoming_listener(state.clone()).await;
 
-    let (command_tx, command_jh) = spawn_command_handler(state.clone()).await;
+    let (cmd_tx, command_jh) = spawn_command_handler(state.clone()).await;
 
     tokio::spawn(async move {
         let _ = command_jh.await;
@@ -56,5 +53,5 @@ pub async fn spawn_new_session() -> Result<(Sender<SessionCommand>, Receiver<Ses
         tcp_incoming_listener_handle.abort();
     });
 
-    Ok((command_tx, alert_rx))
+    Ok((cmd_tx, alert_rx))
 }

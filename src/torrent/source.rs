@@ -5,7 +5,7 @@ use crate::{
         infohash::{
             InfoHash, InfoHashV1, InfoHashV2, INFO_HASH_V1_HEX_SIZE, INFO_HASH_V2_HEX_SIZE,
         },
-        MetaInfo,
+        MetaInfo, TorrentID,
     },
 };
 use reqwest::Url;
@@ -20,6 +20,21 @@ pub enum TorrentSource {
 }
 
 impl TorrentSource {
+    pub fn split_torrent_id(self) -> (Self, TorrentID) {
+        let torrent_id = self.torrent_id();
+        (self, torrent_id)
+    }
+
+    pub fn torrent_id(&self) -> TorrentID {
+        *match self {
+            Self::File(meta_info) => meta_info.info_hash(),
+            Self::Magnet(magnet_link) => &magnet_link.info_hash,
+            Self::InfoHash(info_hash) => info_hash,
+        }
+        .inner()
+        .truncate()
+    }
+
     pub async fn from_str(s: &str) -> Result<Self> {
         fn parse_metainfo_bytes(bytes: &[u8]) -> Result<MetaInfo> {
             MetaInfo::from_bytes(bytes)

@@ -41,8 +41,8 @@ impl InfoHashT for InfoHashV1 {
         self.as_mut_slice()
     }
 
-    fn truncated_bytes(&self) -> &[u8] {
-        self.as_slice()
+    fn truncate(&self) -> &[u8; INFO_HASH_V1_SIZE] {
+        &self
     }
 
     fn len(&self) -> usize {

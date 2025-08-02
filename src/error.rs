@@ -5,7 +5,10 @@ use std::result::Result as StdResult;
 use thiserror::Error as ThisError;
 use tokio::time::error::Elapsed;
 
-use crate::session::{SessionAlert, SessionCommand};
+use crate::{
+    session::{SessionAlert, SessionCommand},
+    torrent::TorrentCommand,
+};
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -49,6 +52,9 @@ pub enum Error {
 
     #[error("SendSessionCommandError")]
     SendSessionCommand(SessionCommand),
+
+    #[error("SendToTorrentCmdError")]
+    SendToTorrentCmd(TorrentCommand),
 
     #[error("SendSessionCommandError")]
     SendSessionAlert(SessionAlert),

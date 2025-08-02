@@ -19,7 +19,7 @@ pub struct MetaInfo {
 
     // info_bytes -> info_hash
     #[serde(skip)]
-    pub info_hash: Option<InfoHash>,
+    info_hash: Option<InfoHash>,
 
     #[serde(skip)]
     pub info: Info,
@@ -85,6 +85,15 @@ impl MetaInfo {
         }
 
         Ok(metainfo)
+    }
+
+    pub fn take_info_hash(&mut self) -> Option<InfoHash> {
+        self.info_hash.take()
+    }
+
+    #[inline]
+    pub fn info_hash(&self) -> &InfoHash {
+        self.info_hash.as_ref().expect("")
     }
 
     pub fn take_announce_list(&mut self) -> Option<AnnounceList> {

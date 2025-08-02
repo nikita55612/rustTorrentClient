@@ -1,4 +1,5 @@
 use super::{InfoHashV1, InfoHashV2};
+use crate::torrent::infohash::INFO_HASH_V1_SIZE;
 
 pub trait InfoHashT {
     fn hex(&self) -> String;
@@ -9,7 +10,7 @@ pub trait InfoHashT {
 
     fn as_mut_bytes(&mut self) -> &mut [u8];
 
-    fn truncated_bytes(&self) -> &[u8];
+    fn truncate(&self) -> &[u8; INFO_HASH_V1_SIZE];
 
     fn len(&self) -> usize;
 }

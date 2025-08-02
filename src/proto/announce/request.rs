@@ -1,7 +1,10 @@
 /// https://wiki.theory.org/BitTorrentSpecification#Tracker_Request_Parameters
 /// https://bittorrent.org/beps/bep_0015.html#announce
 use super::AnnounceBuilder;
-use crate::{proto::PeerId, torrent::infohash::InfoHash, tracker::announce::Event};
+use crate::{
+    proto::{announce::Event, PeerId},
+    torrent::infohash::InfoHash,
+};
 
 #[derive(Debug, Clone)]
 pub struct AnnounceRequestParams<'a> {
@@ -38,7 +41,7 @@ impl<'a> AnnounceRequestParams<'a> {
         buf[offset..offset + 4].copy_from_slice(&transaction_id.to_be_bytes());
         offset += 4;
 
-        buf[offset..offset + 20].copy_from_slice(self.info_hash.inner().truncated_bytes());
+        buf[offset..offset + 20].copy_from_slice(self.info_hash.inner().truncate());
         offset += 20;
 
         buf[offset..offset + 20].copy_from_slice(self.peer_id.as_slice());

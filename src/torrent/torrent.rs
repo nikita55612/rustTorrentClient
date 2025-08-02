@@ -8,6 +8,8 @@ use crate::{
 use std::{path::Path, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
+pub type TorrentID = [u8; 20];
+
 // #[derive(Debug, Clone)]
 // pub enum TorrentSource<'a> {
 //     File(&'a [u8]),
@@ -44,10 +46,7 @@ pub struct Torrent {
 impl Torrent {
     pub async fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let mut metainfo = MetaInfo::from_bytes(bytes)?;
-        let info_hash = metainfo
-            .info_hash
-            .take()
-            .ok_or(Error::Custom("info hash is none".into()))?;
+        let info_hash = metainfo.take_info_hash().expect("");
         let (tx, rx) = mpsc::channel(32);
         Ok(Self {
             metainfo: metainfo,
